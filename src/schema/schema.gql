@@ -22,10 +22,11 @@ type SignupOutput {
 }
 
 type SigninOutput {
-  token: String!
+  accessToken: String!
 }
 
 type Query {
+  me: User!
   user(email: String!): User!
 }
 
