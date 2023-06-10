@@ -15,7 +15,7 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 scalar DateTime
 
 type SignupOutput {
-  id: Float!
+  id: String!
   email: String!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -26,15 +26,12 @@ type SigninOutput {
 }
 
 type Query {
-  users: [User!]!
-  user(id: Int!): User!
+  user(email: String!): User!
 }
 
 type Mutation {
   signup(signupInput: SignupInput!): SignupOutput!
   signin(signinInput: SigninInput!): SigninOutput!
-  createUser(createUserInput: CreateUserInput!): User!
-  removeUser(id: Int!): User!
 }
 
 input SignupInput {
@@ -43,11 +40,6 @@ input SignupInput {
 }
 
 input SigninInput {
-  email: String!
-  password: String!
-}
-
-input CreateUserInput {
   email: String!
   password: String!
 }

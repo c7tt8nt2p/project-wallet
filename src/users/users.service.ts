@@ -1,40 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUserInput } from './dto/create-user.input';
 import { User } from './entities/user.entity';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
-  create(createUserInput: CreateUserInput): User {
-    console.log('creating a new user', { createUserInput });
-    return {
-      id: 1,
-      email: 'New user',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  findAll(): User[] {
-    return [
-      {
-        id: 1,
-        email: 'John',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+  async create(email: string, hashPassword: string) {
+    return this.prisma.user.create({
+      data: {
+        email,
+        password: hashPassword,
       },
-    ];
+    });
   }
 
-  findOne(id: number) {
-    return {
-      id: 2,
-      email: 'Jack',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  async findOneByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async existByEmail(email: string) {
+    return this.prisma.user
+      .findUnique({
+        where: {
+          email,
+        },
+      })
+      .then((result) => !!result);
   }
 }

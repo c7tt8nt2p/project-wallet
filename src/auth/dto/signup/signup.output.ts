@@ -2,7 +2,7 @@ import { ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class SignupOutput {
-  id: number;
+  id: string;
   email: string;
   createdAt: Date;
   updatedAt: Date;

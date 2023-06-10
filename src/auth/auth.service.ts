@@ -2,12 +2,19 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignupInput } from './dto/signup/signup.input';
 import * as argon2 from 'argon2';
-import e from 'express';
 import { SigninInput } from './dto/signin/signin.input';
+import { UsersService } from '../users/users.service';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+    private readonly config: ConfigService,
+    private readonly usersService: UsersService,
+  ) {}
 
   async signup(signupInput: SignupInput) {
     const { email, password } = signupInput;
@@ -20,13 +27,7 @@ export class AuthService {
   }
 
   private async validateSignupUserExistence(email: string) {
-    const userExist = await this.prisma.user
-      .findUnique({
-        where: {
-          email,
-        },
-      })
-      .then((r) => !!r);
+    const userExist = await this.usersService.existByEmail(email);
     if (userExist) {
       throw new ForbiddenException('User already exists.');
     }
@@ -34,12 +35,7 @@ export class AuthService {
 
   private async createNewUser(email: string, password: string) {
     const hash = await argon2.hash(password);
-    return this.prisma.user.create({
-      data: {
-        email,
-        password: hash,
-      },
-    });
+    return this.usersService.create(email, hash);
   }
 
   async signin(signinInput: SigninInput) {
@@ -50,11 +46,7 @@ export class AuthService {
   }
 
   private async validateSigninUserExistence(email: string) {
-    const user = await this.prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
+    const user = await this.usersService.findOneByEmail(email);
     if (!user) {
       throw new ForbiddenException('Invalid credentials');
     }
@@ -66,5 +58,16 @@ export class AuthService {
     if (!verified) {
       throw new ForbiddenException('Invalid credentials');
     }
+  }
+
+  signToken(id: string, email: string) {
+    const payload = {
+      sub: id,
+      email,
+    };
+    return this.jwt.signAsync(payload, {
+      secret: this.config.get('JWT_SECRET'),
+      expiresIn: '30m',
+    });
   }
 }
