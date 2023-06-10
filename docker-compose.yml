@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15.3-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_DB=project-wallet
+    ports:
+      - '5432:5432'
+#    volumes:
+#      - db:/var/lib/postgresql/data
+#volumes:
+#  db:
+#    driver: local

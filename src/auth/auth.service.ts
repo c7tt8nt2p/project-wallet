@@ -1,26 +1,70 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthInput } from './dto/create-auth.input';
-import { UpdateAuthInput } from './dto/update-auth.input';
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { SignupInput } from './dto/signup/signup.input';
+import * as argon2 from 'argon2';
+import e from 'express';
+import { SigninInput } from './dto/signin/signin.input';
 
 @Injectable()
 export class AuthService {
-  create(createAuthInput: CreateAuthInput) {
-    return 'This action adds a new auth';
+  constructor(private readonly prisma: PrismaService) {}
+
+  async signup(signupInput: SignupInput) {
+    const { email, password } = signupInput;
+
+    await this.validateSignupUserExistence(email);
+    const createdUser = await this.createNewUser(email, password);
+
+    delete createdUser.password;
+    return createdUser;
   }
 
-  findAll() {
-    return `This action returns all auth`;
+  private async validateSignupUserExistence(email: string) {
+    const userExist = await this.prisma.user
+      .findUnique({
+        where: {
+          email,
+        },
+      })
+      .then((r) => !!r);
+    if (userExist) {
+      throw new ForbiddenException('User already exists.');
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  private async createNewUser(email: string, password: string) {
+    const hash = await argon2.hash(password);
+    return this.prisma.user.create({
+      data: {
+        email,
+        password: hash,
+      },
+    });
   }
 
-  update(id: number, updateAuthInput: UpdateAuthInput) {
-    return `This action updates a #${id} auth`;
+  async signin(signinInput: SigninInput) {
+    const { email, password } = signinInput;
+    const user = await this.validateSigninUserExistence(email);
+    await this.doSignin(user.password, password);
+    return user;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  private async validateSigninUserExistence(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+    if (!user) {
+      throw new ForbiddenException('Invalid credentials');
+    }
+    return user;
+  }
+
+  private async doSignin(hash: string, password: string) {
+    const verified = await argon2.verify(hash, password);
+    if (!verified) {
+      throw new ForbiddenException('Invalid credentials');
+    }
   }
 }
